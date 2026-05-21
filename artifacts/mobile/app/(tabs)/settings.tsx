@@ -47,6 +47,7 @@ export default function SettingsScreen() {
   const [codeInput, setCodeInput] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
@@ -126,21 +127,10 @@ export default function SettingsScreen() {
     }
   }
 
-  function handleClearAll() {
-    Alert.alert(
-      "전체 데이터 초기화",
-      `매매 기록 ${trades.length}건과 계좌 정보를 모두 삭제합니다.\n이 작업은 되돌릴 수 없습니다.`,
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "전체 삭제", style: "destructive",
-          onPress: async () => {
-            await clearAllData();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          },
-        },
-      ]
-    );
+  async function handleConfirmClear() {
+    await clearAllData();
+    setConfirmClear(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }
 
   async function handleDisconnect() {
@@ -306,13 +296,33 @@ export default function SettingsScreen() {
           onPress={importBackup}
           color="#6699FF"
         />
-        <SettingRow
-          icon="trash-2"
-          label="전체 데이터 초기화"
-          description="모든 매매 기록과 계좌를 삭제합니다"
-          onPress={handleClearAll}
-          danger
-        />
+        {confirmClear ? (
+          <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.loss + "60" }]}>
+            <View style={[styles.iconWrap, { backgroundColor: colors.loss + "18" }]}>
+              <Feather name="alert-triangle" size={20} color={colors.loss} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, { color: colors.loss }]}>정말 삭제하시겠어요?</Text>
+              <Text style={[styles.rowDesc, { color: colors.mutedForeground }]}>매매 기록 {trades.length}건이 모두 삭제됩니다</Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable onPress={() => setConfirmClear(false)} style={[styles.inlineBtn, { borderColor: colors.border }]}>
+                <Text style={[styles.inlineBtnText, { color: colors.mutedForeground }]}>취소</Text>
+              </Pressable>
+              <Pressable onPress={handleConfirmClear} style={[styles.inlineBtn, { backgroundColor: colors.loss, borderColor: colors.loss }]}>
+                <Text style={[styles.inlineBtnText, { color: "#fff" }]}>삭제</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <SettingRow
+            icon="trash-2"
+            label="전체 데이터 초기화"
+            description="모든 매매 기록과 계좌를 삭제합니다"
+            onPress={() => setConfirmClear(true)}
+            danger
+          />
+        )}
       </View>
 
       <View style={styles.section}>
@@ -370,4 +380,6 @@ const styles = StyleSheet.create({
   connectBtnText: { fontSize: 13, fontWeight: "700" as const },
   createBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 10, paddingVertical: 12 },
   createBtnText: { fontSize: 14, fontWeight: "600" as const },
+  inlineBtn: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
+  inlineBtnText: { fontSize: 13, fontWeight: "700" as const },
 });
