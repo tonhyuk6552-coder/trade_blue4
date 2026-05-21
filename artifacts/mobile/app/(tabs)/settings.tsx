@@ -42,7 +42,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { trades, exportBackup, importBackup, exportExcelTemplate, importFromExcel,
-    syncCode, syncStatus, connectSync, disconnectSync, createSync } = useTrades();
+    syncCode, syncStatus, connectSync, disconnectSync, createSync, clearAllData } = useTrades();
   const [excelImporting, setExcelImporting] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [connecting, setConnecting] = useState(false);
@@ -124,6 +124,23 @@ export default function SettingsScreen() {
     } finally {
       setCreating(false);
     }
+  }
+
+  function handleClearAll() {
+    Alert.alert(
+      "전체 데이터 초기화",
+      `매매 기록 ${trades.length}건과 계좌 정보를 모두 삭제합니다.\n이 작업은 되돌릴 수 없습니다.`,
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "전체 삭제", style: "destructive",
+          onPress: async () => {
+            await clearAllData();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          },
+        },
+      ]
+    );
   }
 
   async function handleDisconnect() {
@@ -288,6 +305,13 @@ export default function SettingsScreen() {
           description="저장된 JSON 백업 파일에서 복원합니다"
           onPress={importBackup}
           color="#6699FF"
+        />
+        <SettingRow
+          icon="trash-2"
+          label="전체 데이터 초기화"
+          description="모든 매매 기록과 계좌를 삭제합니다"
+          onPress={handleClearAll}
+          danger
         />
       </View>
 

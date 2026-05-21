@@ -168,6 +168,7 @@ interface TradesContextValue {
   importBackup: () => Promise<void>;
   importFromExcel: () => Promise<{ imported: number; skipped: number } | null>;
   exportExcelTemplate: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 const TradesContext = createContext<TradesContextValue | null>(null);
@@ -897,6 +898,13 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const clearAllData = useCallback(async () => {
+    await AsyncStorage.setItem(TRADES_KEY, JSON.stringify([]));
+    await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
+    setTrades([]);
+    setAccounts(DEFAULT_ACCOUNTS);
+  }, []);
+
   return (
     <TradesContext.Provider value={{
       trades, accounts, loading,
@@ -907,6 +915,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
       addAccount, updateAccount, deleteAccount, reorderAccounts,
       exportBackup, importBackup,
       exportExcelTemplate, importFromExcel,
+      clearAllData,
     }}>
       {children}
     </TradesContext.Provider>
