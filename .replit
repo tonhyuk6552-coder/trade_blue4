@@ -34,18 +34,18 @@ outputType = "console"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/mobile && PORT=5000 EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN pnpm run dev"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/mobile && (PORT=5001 EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN pnpm run dev &) && METRO_PORT=5001 node server/dev-proxy.js"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 8000
-externalPort = 8000
+localPort = 5001
+externalPort = 3000
