@@ -152,13 +152,14 @@ export default function TradeDetailScreen() {
 
   const equityData = useMemo(() => {
     if (!trade) return [];
-    const sorted = [...trade.exits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sorted = [...trade.exits].sort((a, b) =>
+      a.timestamp - b.timestamp || a.date.localeCompare(b.date)
+    );
     let cumPnL = 0;
     const r = calcTradeResult(trade);
-    const avgBuy = r.avgBuy;
     return sorted.map((ex) => {
-      const pnl = (ex.price - avgBuy) * ex.quantity;
-      cumPnL += pnl;
+      const exitResult = r.exitResults.find((item) => item.exitId === ex.id);
+      cumPnL += exitResult?.realizedPnL ?? 0;
       return { date: ex.date, pnl: cumPnL };
     });
   }, [trade]);

@@ -136,7 +136,8 @@ export default function CalendarScreen() {
         const d = ex.date;
         if (!d) continue;
         if (!exitMap[d]) exitMap[d] = { pnl: 0, exits: [] };
-        const exitPnL = (ex.price - result.avgBuy) * ex.quantity;
+        const exitResult = result.exitResults.find((item) => item.exitId === ex.id);
+        const exitPnL = exitResult?.realizedPnL ?? 0;
         exitMap[d].pnl += exitPnL;
         exitMap[d].exits.push({ trade: t, price: ex.price, qty: ex.quantity });
       }

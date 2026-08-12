@@ -231,8 +231,8 @@ export default function ChartScreen() {
 
     for (const t of relevant) {
       const r = calcTradeResult(t);
-      totalCost += r.avgBuy * t.entries.reduce((s, e) => s + e.quantity, 0);
-      totalQty += t.entries.reduce((s, e) => s + e.quantity, 0);
+      totalCost += r.avgBuy * r.remainingQty;
+      totalQty += r.remainingQty;
 
       for (const entry of t.entries) {
         const time = period.intraday

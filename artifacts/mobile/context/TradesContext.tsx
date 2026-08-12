@@ -61,21 +61,87 @@ export interface TradeResult {
   realizedPnL: number;
   roi: number;
   isOpen: boolean;
+  exitResults: TradeExitResult[];
+}
+
+export interface TradeExitResult {
+  exitId: string;
+  avgBuy: number;
+  realizedPnL: number;
+  remainingQty: number;
 }
 
 export function calcTradeResult(trade: Trade): TradeResult {
-  const totalBought = trade.entries.reduce((sum, e) => sum + e.quantity, 0);
-  const totalSold = trade.exits.reduce((sum, e) => sum + e.quantity, 0);
-  const totalBuyCost = trade.entries.reduce((sum, e) => sum + e.price * e.quantity, 0);
-  const totalSellCost = trade.exits.reduce((sum, e) => sum + e.price * e.quantity, 0);
+  type TradeEvent =
+    | { kind: "buy"; timestamp: number; index: number; price: number; quantity: number }
+    | { kind: "sell"; timestamp: number; index: number; exit: TradeExit };
 
-  const avgBuy = totalBought > 0 ? totalBuyCost / totalBought : 0;
+  const events: TradeEvent[] = [
+    ...trade.entries.map((entry, index) => ({
+      kind: "buy" as const,
+      timestamp: Number.isFinite(entry.timestamp) ? entry.timestamp : 0,
+      index,
+      price: entry.price,
+      quantity: entry.quantity,
+    })),
+    ...trade.exits.map((exit, index) => ({
+      kind: "sell" as const,
+      timestamp: Number.isFinite(exit.timestamp) ? exit.timestamp : 0,
+      index,
+      exit,
+    })),
+  ].sort((a, b) => {
+    const timestampDifference = a.timestamp - b.timestamp;
+    if (timestampDifference !== 0) return timestampDifference;
+
+    // When only a date is available, process buys first so same-day
+    // imported buys can establish the position before their sells.
+    if (a.kind !== b.kind) return a.kind === "buy" ? -1 : 1;
+    return a.index - b.index;
+  });
+
+  let totalBought = 0;
+  let totalSold = 0;
+  let remainingQty = 0;
+  let remainingCost = 0;
+  let realizedPnL = 0;
+  let realizedCost = 0;
+  let totalSellCost = 0;
+  const exitResults: TradeExitResult[] = [];
+
+  for (const event of events) {
+    if (event.kind === "buy") {
+      totalBought += event.quantity;
+      remainingQty += event.quantity;
+      remainingCost += event.price * event.quantity;
+      continue;
+    }
+
+    totalSold += event.exit.quantity;
+    totalSellCost += event.exit.price * event.exit.quantity;
+
+    const averageCost = remainingQty > 0 ? remainingCost / remainingQty : 0;
+    const matchedQuantity = Math.min(event.exit.quantity, remainingQty);
+    const costBasis = averageCost * matchedQuantity;
+    const exitPnL = (event.exit.price - averageCost) * matchedQuantity;
+
+    remainingQty -= matchedQuantity;
+    remainingCost = Math.max(0, remainingCost - costBasis);
+    realizedCost += costBasis;
+    realizedPnL += exitPnL;
+    exitResults.push({
+      exitId: event.exit.id,
+      avgBuy: averageCost,
+      realizedPnL: exitPnL,
+      remainingQty,
+    });
+  }
+
+  const avgBuy = remainingQty > 0 ? remainingCost / remainingQty : 0;
   const avgSell = totalSold > 0 ? totalSellCost / totalSold : 0;
-  const remainingQty = totalBought - totalSold;
-  const realizedPnL = (avgSell - avgBuy) * totalSold;
-  const roi = avgBuy > 0 && totalSold > 0 ? ((avgSell - avgBuy) / avgBuy) * 100 : 0;
+  const roi = realizedCost > 0 ? (realizedPnL / realizedCost) * 100 : 0;
 
-  return { avgBuy, avgSell, totalBought, totalSold, remainingQty, realizedPnL, roi, isOpen: remainingQty > 0 };
+  return { avgBuy, avgSell, totalBought, totalSold, remainingQty, realizedPnL, roi, isOpen: remainingQty > 0, exitResults };
 }
 
 function generateId(): string {
