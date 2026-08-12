@@ -882,7 +882,10 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
           const ticker = tickerRaw || nameRaw.toUpperCase() || "UNKNOWN";
           const name = nameRaw || ticker;
           const account = findOrCreateAccount(accountNameRaw);
-          const ts = Date.parse(date) || Date.now();
+          // Excel imports currently preserve the trading date but not the
+          // time-of-day. Keep the original row order in the timestamp so
+          // same-day buys and sells are still processed chronologically.
+          const ts = (Date.parse(date) || Date.now()) + i;
           if (isBuy) {
             if (!positionMap.has(posNo)) {
               const newTrade: Trade = {
@@ -929,7 +932,10 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
           const ticker = tickerRaw || nameRaw.toUpperCase() || "UNKNOWN";
           const name = nameRaw || ticker;
           const account = findOrCreateAccount(accountNameRaw);
-          const ts = Date.parse(date) || Date.now();
+          // Excel imports currently preserve the trading date but not the
+          // time-of-day. Keep the original row order in the timestamp so
+          // same-day buys and sells are still processed chronologically.
+          const ts = (Date.parse(date) || Date.now()) + i;
           if (isBuy) {
             const newTrade: Trade = {
               id: generateId(), ticker, name, date, accountId: account.id,
