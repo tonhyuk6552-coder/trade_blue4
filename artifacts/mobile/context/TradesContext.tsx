@@ -71,31 +71,60 @@ export interface TradeExitResult {
   remainingQty: number;
 }
 
+function getTradeDate(timestamp: number, date?: string): string {
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function getGeneratedAt(id: string): number | null {
+  const match = id.match(/^\d{13}/);
+  if (!match) return null;
+  const timestamp = Number(match[0]);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
 export function calcTradeResult(trade: Trade): TradeResult {
   type TradeEvent =
-    | { kind: "buy"; timestamp: number; index: number; price: number; quantity: number }
-    | { kind: "sell"; timestamp: number; index: number; exit: TradeExit };
+    | { kind: "buy"; timestamp: number; date: string; createdAt: number | null; index: number; price: number; quantity: number }
+    | { kind: "sell"; timestamp: number; date: string; createdAt: number | null; index: number; exit: TradeExit };
 
   const events: TradeEvent[] = [
-    ...trade.entries.map((entry, index) => ({
-      kind: "buy" as const,
-      timestamp: Number.isFinite(entry.timestamp) ? entry.timestamp : 0,
-      index,
-      price: entry.price,
-      quantity: entry.quantity,
-    })),
-    ...trade.exits.map((exit, index) => ({
-      kind: "sell" as const,
-      timestamp: Number.isFinite(exit.timestamp) ? exit.timestamp : 0,
-      index,
-      exit,
-    })),
+    ...trade.entries.map((entry, index) => {
+      const timestamp = Number.isFinite(entry.timestamp) ? entry.timestamp : 0;
+      return {
+        kind: "buy" as const,
+        timestamp,
+        date: getTradeDate(timestamp),
+        createdAt: getGeneratedAt(entry.id),
+        index,
+        price: entry.price,
+        quantity: entry.quantity,
+      };
+    }),
+    ...trade.exits.map((exit, index) => {
+      const timestamp = Number.isFinite(exit.timestamp) ? exit.timestamp : 0;
+      return {
+        kind: "sell" as const,
+        timestamp,
+        date: getTradeDate(timestamp, exit.date),
+        createdAt: getGeneratedAt(exit.id),
+        index,
+        exit,
+      };
+    }),
   ].sort((a, b) => {
+    const dateDifference = a.date.localeCompare(b.date);
+    if (dateDifference !== 0) return dateDifference;
+
+    // Generated IDs retain creation time. Use it within a trading date so
+    // editing a date cannot reorder existing transactions.
+    if (a.createdAt !== null && b.createdAt !== null && a.createdAt !== b.createdAt) {
+      return a.createdAt - b.createdAt;
+    }
+
     const timestampDifference = a.timestamp - b.timestamp;
     if (timestampDifference !== 0) return timestampDifference;
 
-    // When only a date is available, process buys first so same-day
-    // imported buys can establish the position before their sells.
     if (a.kind !== b.kind) return a.kind === "buy" ? -1 : 1;
     return a.index - b.index;
   });
@@ -152,6 +181,7 @@ const TRADES_KEY = "@trading_journal_trades";
 const ACCOUNTS_KEY = "@trading_journal_accounts";
 const SYNC_CODE_KEY = "@sync_code";
 const LAST_PUSHED_AT_KEY = "@last_pushed_at";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function getApiBase(): string {
   // Explicit API URL takes priority (for native apps)
@@ -463,7 +493,19 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     setTrades((prev) => {
       const updated = prev.map((t) =>
         t.id === tradeId
-          ? { ...t, entries: t.entries.map((e) => e.id === entryId ? { ...e, price, quantity, ...(timestamp ? { timestamp } : {}) } : e) }
+          ? {
+            ...t,
+            entries: t.entries.map((e) => {
+              if (e.id !== entryId) return e;
+              if (!timestamp) return { ...e, price, quantity };
+
+              // A date edit supplies midnight for the new date. Preserve the
+              // existing time offset so editing a buy cannot move it ahead of
+              // or behind another transaction in the same trading day.
+              const timeOffset = ((e.timestamp % DAY_MS) + DAY_MS) % DAY_MS;
+              return { ...e, price, quantity, timestamp: timestamp + timeOffset };
+            }),
+          }
           : t
       );
       AsyncStorage.setItem(TRADES_KEY, JSON.stringify(updated));
