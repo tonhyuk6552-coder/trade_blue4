@@ -24,10 +24,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: "calendar", selected: "calendar" }} />
         <Label>캘린더</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="chart">
-        <Icon sf={{ default: "chart.line.uptrend.xyaxis", selected: "chart.line.uptrend.xyaxis" }} />
-        <Label>차트</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="log">
         <Icon sf={{ default: "plus.circle", selected: "plus.circle.fill" }} />
         <Label>기록</Label>
@@ -101,18 +97,6 @@ function ClassicTabLayout() {
               <SymbolView name="calendar" tintColor={color} size={22} />
             ) : (
               <Feather name="calendar" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="chart"
-        options={{
-          title: "차트",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
-            ) : (
-              <Feather name="trending-up" size={22} color={color} />
             ),
         }}
       />

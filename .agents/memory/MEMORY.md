@@ -1,0 +1,1 @@
+- [Workspace dependency relinking](dependency-relinking.md) — Expo Metro may need a forced frozen pnpm reinstall after workspace dependency removal.
