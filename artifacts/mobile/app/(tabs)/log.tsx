@@ -127,7 +127,7 @@ export default function LogScreen() {
         const newTrade = addTrade(stock.ticker, stock.name, finalDate, selectedAccountId);
         tradeId = newTrade.id;
       }
-      addEntry(tradeId, p, q);
+      addEntry(tradeId, p, q, finalDate);
       router.push(`/trade/${tradeId}`);
     } else {
       let tradeId = selectedTradeId;

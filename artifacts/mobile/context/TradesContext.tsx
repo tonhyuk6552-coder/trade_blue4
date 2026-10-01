@@ -247,7 +247,7 @@ interface TradesContextValue {
   disconnectSync: () => Promise<void>;
   createSync: () => Promise<string>;
   addTrade: (ticker: string, name: string, date: string, accountId: string) => Trade;
-  addEntry: (tradeId: string, price: number, quantity: number) => void;
+  addEntry: (tradeId: string, price: number, quantity: number, date?: string) => void;
   addExit: (tradeId: string, price: number, quantity: number, date: string) => void;
   updateEntry: (tradeId: string, entryId: string, price: number, quantity: number, timestamp?: number) => void;
   updateExit: (tradeId: string, exitId: string, price: number, quantity: number, date: string) => void;
@@ -465,11 +465,14 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     return trade;
   }, []);
 
-  const addEntry = useCallback((tradeId: string, price: number, quantity: number) => {
+  const addEntry = useCallback((tradeId: string, price: number, quantity: number, date?: string) => {
+    const timestamp = date === undefined ? Date.now() : Date.parse(`${date}T00:00:00.000Z`);
+    if (!Number.isFinite(timestamp)) return;
+
     setTrades((prev) => {
       const updated = prev.map((t) =>
         t.id === tradeId
-          ? { ...t, entries: [...t.entries, { id: generateId(), price, quantity, timestamp: Date.now() }] }
+          ? { ...t, entries: [...t.entries, { id: generateId(), price, quantity, timestamp }] }
           : t
       );
       AsyncStorage.setItem(TRADES_KEY, JSON.stringify(updated));
