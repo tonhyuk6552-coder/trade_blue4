@@ -40,7 +40,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mobile && (PORT=5001 EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN pnpm run dev &) && METRO_PORT=5001 node server/dev-proxy.js"
+args = "cd artifacts/web && pnpm run dev"
 waitForPort = 5000
 
 [[ports]]

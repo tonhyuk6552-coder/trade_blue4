@@ -1,71 +1,64 @@
 # 매매일지
 
-한국 주식/해외 주식 매매 기록 및 분석 앱 (Expo React Native + Express API)
+한국 주식과 해외 주식의 매매 기록, 손익, 계좌를 관리하는 반응형 웹 서비스.
 
-## Run & Operate
+## 실행 및 관리
 
-- `Start application` 워크플로우 — Expo 웹 앱 (port 5000, 미리보기)
+- `Start application` 워크플로우 — React/Vite 웹 앱 (port 5000, 미리보기)
 - `API Server` 워크플로우 — Express API 서버 (port 8000)
+- `pnpm --filter @workspace/web run dev` — 웹 앱 수동 실행
 - `pnpm --filter @workspace/api-server run dev` — API 서버 수동 실행
 - `pnpm run typecheck` — 전체 타입 체크
-- `pnpm --filter @workspace/db run push` — DB 스키마 변경 적용 (dev)
-- Required env: `DATABASE_URL` — PostgreSQL 연결 문자열 (자동 설정됨)
+- `pnpm --filter @workspace/db run push` — 개발 DB 스키마 적용
 
-## Stack
+## 기술 구성
 
 - pnpm workspaces, Node.js 20, TypeScript 5.9
-- Mobile/Web: Expo SDK 54 + React Native 0.81 + Expo Router 6
+- 웹: React 19, Vite, Wouter, TanStack Query
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
-- 차트: lightweight-charts (Yahoo Finance 데이터)
-- 빌드: esbuild (API), Metro (모바일)
+- 빌드: Vite (웹), esbuild (API)
 
-## Where things live
+## 주요 경로
 
-- `artifacts/mobile/` — Expo 앱 (React Native/Web)
-  - `app/(tabs)/` — 탭 화면들 (대시보드, 거래내역, 캘린더, 차트, 기록, 설정)
-  - `app/trade/[id].tsx` — 거래 상세 화면
-  - `context/TradesContext.tsx` — 전역 상태 (거래, 계좌, 동기화)
-  - `constants/stocks.ts` — 국내/해외 종목 검색 데이터
+- `artifacts/web/` — 데스크톱·모바일 브라우저용 웹 앱
+  - `src/pages/` — 대시보드, 거래, 기록, 캘린더, 설정 화면
+  - `src/context/TradesContext.tsx` — 거래·계좌 상태, 저장, 클라우드 동기화
+  - `src/domain/trades.ts` — 거래 자료형과 손익 계산
+  - `src/data/stocks.ts` — 국내·해외 종목 검색 데이터
 - `artifacts/api-server/` — Express API 서버
-  - `src/routes/sync.ts` — 기기 간 동기화 API
-  - `src/routes/price.ts` — 실시간 주가 API (Google/Yahoo Finance)
-  - `src/routes/chart.ts` — 차트 데이터 API (Yahoo Finance)
-- `lib/db/` — Drizzle ORM 스키마 + 설정
-  - `src/schema/index.ts` — sync_data 테이블
+  - `src/routes/sync.ts` — 코드 기반 클라우드 동기화
+  - `src/routes/price.ts` — Google Finance/Yahoo Finance 현재가 조회
+- `lib/db/` — Drizzle ORM 스키마와 설정
 
-## Architecture decisions
+## 데이터 및 API
 
-- 데이터는 AsyncStorage에 로컬 저장, 선택적 클라우드 동기화
-- 동기화는 8자리 코드 기반 (XXXX-XXXX 형식)
-- 주가 조회: Google Finance → Yahoo Finance 폴백 순서
-- 차트는 lightweight-charts를 WebView에 임베드 (네이티브/웹 공통)
-- Expo web에서 window.location.origin을 API base URL로 자동 감지
+- 거래와 계좌는 AsyncStorage 웹 구현과 호환되는 동일한 localStorage 키에 저장되어 기존 브라우저 기록을 유지한다.
+- 코드 기반 동기화는 8자리 코드(XXXX-XXXX)를 사용한다.
+- 개발 중 Vite의 `/api` 프록시가 8000번 API 서버로 요청을 전달한다.
+- 가격 조회는 기존 API 서버의 Google Finance → Yahoo Finance 순서를 사용한다.
 
-## Product
+## 제품 기능
 
-- 매수/매도 거래 기록 및 손익 자동 계산
-- 계좌별 포지션 관리 및 P&L 집계
-- 실시간 현재가 조회 및 미실현 손익 표시
-- 캘린더 기반 거래 일지 뷰
-- 캔들스틱 차트 (매수/매도 마커 오버레이)
-- 기기 간 데이터 동기화 (코드 기반)
-- JSON 백업/복원, Excel 가져오기/내보내기
+- 매수·매도 입력, 수정, 삭제와 손익 자동 계산
+- 계좌별 거래 관리 및 계좌별 손익 집계
+- 현재가와 미실현 손익 표시
+- 월별 거래 캘린더와 거래 상세의 손익 흐름
+- 코드 기반 브라우저 간 동기화
+- JSON 백업·복원, Excel 양식 다운로드·가져오기
 
-## User preferences
+## 사용자 선호
 
 - 한국어 UI
 - 다크 테마 (배경 #0C0D10)
 
-## Gotchas
+## 실행 정보
 
-- API 서버 포트: 8000 (console workflow), 앱 포트: 5000 (webview)
-- EXPO_PUBLIC_DOMAIN은 앱 dev 스크립트에서 $REPLIT_DEV_DOMAIN으로 자동 설정
-- API 서버 변경 시 `pnpm run build` 필요 (esbuild 번들링)
-- pnpm v9 필요 (v10은 Node 20과 sqlite 호환성 문제)
+- API 서버 포트: 8000 (console workflow), 웹 앱 포트: 5000 (webview)
+- API 서버 변경 시 빌드와 타입 검사를 다시 실행한다.
 
-## Pointers
+## 코드 위치
 
-- 종목 데이터: `artifacts/mobile/constants/stocks.ts`
-- 색상 테마: `artifacts/mobile/constants/colors.ts`
-- 손익 계산 로직: `artifacts/mobile/context/TradesContext.tsx` (calcTradeResult)
+- 손익 계산: `artifacts/web/src/domain/trades.ts` (`calcTradeResult`)
+- 저장·동기화·기록: `artifacts/web/src/context/TradesContext.tsx`
+- 파일 백업 및 Excel 처리: `artifacts/web/src/lib/file-transfer.ts`
